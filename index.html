@@ -155,26 +155,38 @@
         renderBoard();
     }
 
-    // Shuffle the board (Fisher-Yates) - but we must ensure it's solvable
-    // To make it simple, we can just perform many valid random moves from solved state
+    // Shuffle the board using Fisher-Yates and ensure it is mathematically solvable
     function shuffleTiles() {
-        let emptyIdx = tiles.length - 1;
-        for (let i = 0; i < 1000; i++) {
-            const neighbors = [];
-            const row = Math.floor(emptyIdx / size);
-            const col = emptyIdx % size;
+        // True Fisher-Yates shuffle
+        for (let i = tiles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+        }
 
-            if (row > 0) neighbors.push(emptyIdx - size);
-            if (row < size - 1) neighbors.push(emptyIdx + size);
-            if (col > 0) neighbors.push(emptyIdx - 1);
-            if (col < size - 1) neighbors.push(emptyIdx + 1);
+        // Check solvability
+        let inversions = 0;
+        let blankIdx = tiles.indexOf(null);
+        let blankRowFromBottom = size - Math.floor(blankIdx / size);
 
-            const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+        for (let i = 0; i < tiles.length; i++) {
+            if (tiles[i] === null) continue;
+            for (let j = i + 1; j < tiles.length; j++) {
+                if (tiles[j] === null) continue;
+                if (tiles[i] > tiles[j]) {
+                    inversions++;
+                }
+            }
+        }
 
-            // Swap
-            tiles[emptyIdx] = tiles[randomNeighbor];
-            tiles[randomNeighbor] = null;
-            emptyIdx = randomNeighbor;
+        const isSolvable = (blankRowFromBottom % 2 === 0) ? (inversions % 2 !== 0) : (inversions % 2 === 0);
+
+        if (!isSolvable) {
+            // Swap the first two consecutive non-blank tiles to flip the parity
+            let i = 0;
+            if (tiles[i] === null) i++;
+            let j = i + 1;
+            if (tiles[j] === null) j++;
+            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
         }
     }
 
