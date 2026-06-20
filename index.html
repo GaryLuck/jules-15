@@ -8,11 +8,35 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            width: 330px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-box {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
         }
         #puzzle-container {
             display: grid;
@@ -23,6 +47,7 @@
             padding: 5px;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
         }
         .tile {
             display: flex;
@@ -44,22 +69,91 @@
             background-color: #333;
             cursor: default;
         }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
 
+<div class="stats-container">
+    <div class="stat-box">
+        <div class="stat-label">Time</div>
+        <div class="stat-value" id="time-val">0s</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">Moves</div>
+        <div class="stat-value" id="moves-val">0</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">Best Time</div>
+        <div class="stat-value" id="best-time-val">-</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">Best Moves</div>
+        <div class="stat-value" id="best-moves-val">-</div>
+    </div>
+</div>
+
 <div id="puzzle-container"></div>
+
+<button id="reset-btn">Reset Game</button>
 
 <script>
     const container = document.getElementById('puzzle-container');
+    const timeValEl = document.getElementById('time-val');
+    const movesValEl = document.getElementById('moves-val');
+    const bestTimeValEl = document.getElementById('best-time-val');
+    const bestMovesValEl = document.getElementById('best-moves-val');
+    const resetBtn = document.getElementById('reset-btn');
+
     const size = 4;
     let tiles = [];
 
-    // Initialize solved board
-    for (let i = 1; i < size * size; i++) {
-        tiles.push(i);
+    let moves = 0;
+    let time = 0;
+    let timerInterval = null;
+    let gameActive = false;
+
+    let bestTime = null;
+    let bestMoves = null;
+
+    function initGame() {
+        tiles = [];
+        // Initialize solved board
+        for (let i = 1; i < size * size; i++) {
+            tiles.push(i);
+        }
+        tiles.push(null); // The empty spot
+
+        shuffleTiles();
+
+        moves = 0;
+        time = 0;
+        gameActive = true;
+        updateStats();
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (gameActive) {
+                time++;
+                updateStats();
+            }
+        }, 1000);
+
+        renderBoard();
     }
-    tiles.push(null); // The empty spot
 
     // Shuffle the board (Fisher-Yates) - but we must ensure it's solvable
     // To make it simple, we can just perform many valid random moves from solved state
@@ -100,6 +194,8 @@
     }
 
     function handleTileClick(index) {
+        if (!gameActive) return;
+
         const emptyIdx = tiles.indexOf(null);
 
         const row = Math.floor(index / size);
@@ -114,9 +210,18 @@
             // Swap
             tiles[emptyIdx] = tiles[index];
             tiles[index] = null;
+            moves++;
+            updateStats();
             renderBoard();
             checkWin();
         }
+    }
+
+    function updateStats() {
+        timeValEl.textContent = time + 's';
+        movesValEl.textContent = moves;
+        bestTimeValEl.textContent = bestTime !== null ? bestTime + 's' : '-';
+        bestMovesValEl.textContent = bestMoves !== null ? bestMoves : '-';
     }
 
     function checkWin() {
@@ -128,12 +233,20 @@
             }
         }
         if (isWin && tiles[tiles.length - 1] === null) {
-            setTimeout(() => alert('Congratulations! You solved the puzzle!'), 10);
+            gameActive = false;
+            clearInterval(timerInterval);
+
+            if (bestTime === null || time < bestTime) bestTime = time;
+            if (bestMoves === null || moves < bestMoves) bestMoves = moves;
+            updateStats();
+
+            setTimeout(() => alert(`Congratulations! You solved the puzzle in ${time} seconds and ${moves} moves!`), 10);
         }
     }
 
-    shuffleTiles();
-    renderBoard();
+    resetBtn.addEventListener('click', initGame);
+
+    initGame();
 </script>
 
 </body>
